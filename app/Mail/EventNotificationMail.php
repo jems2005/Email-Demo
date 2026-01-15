@@ -18,10 +18,13 @@ class EventNotificationMail extends Mailable
         $this->event = $event;
     }
 
-    public function build()
+    /**
+     * Build the message.
+     */
+    public function build(): self
     {
         return $this
-            ->subject('New Event: ' . $this->event->title)
+            ->subject('📅 New Event: ' . $this->event->title)
             ->view('emails.event-notification');
     }
 }

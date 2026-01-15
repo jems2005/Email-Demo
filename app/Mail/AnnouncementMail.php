@@ -18,10 +18,13 @@ class AnnouncementMail extends Mailable
         $this->announcement = $announcement;
     }
 
-    public function build()
+    /**
+     * Build the message.
+     */
+    public function build(): self
     {
         return $this
-            ->subject($this->announcement->title)
+            ->subject('📢 ' . $this->announcement->title)
             ->view('emails.announcement');
     }
 }

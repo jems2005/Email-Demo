@@ -9,12 +9,13 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('announcements', function (Blueprint $table) {
             $table->id();
             $table->string('title');
             $table->text('message');
+            $table->date('publish_date')->useCurrent();
             $table->timestamps();
         });
     }

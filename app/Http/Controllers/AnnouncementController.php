@@ -7,37 +7,67 @@ use App\Models\User;
 use App\Models\Announcement;
 use App\Mail\AnnouncementMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class AnnouncementController extends Controller
 {
-    // GET /announcement
+    /**
+     * Show the form for creating a new announcement.
+     */
     public function index()
     {
-        return view('announcements.index');
+        $announcements = Announcement::latest()->get();
+        return view('announcements.index', compact('announcements'));
     }
 
-    // POST /announcement/send
+    /**
+     * Store and send a new announcement.
+     */
     public function send(Request $request)
     {
         $request->validate([
-            'title' => 'required',
-            'message' => 'required',
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
         ]);
 
-        $announcement = Announcement::create([
-            'title' => $request->title,
-            'message' => $request->message,
-        ]);
+        try {
+            $announcement = Announcement::create([
+                'title' => $request->title,
+                'message' => $request->message,
+            ]);
 
-        $users = User::all();
+            $users = User::whereNotNull('email')->get();
 
-        foreach ($users as $user) {
-            Mail::to($user->email)->send(
-                new AnnouncementMail($announcement)
-            );
+            if ($users->isEmpty()) {
+                return back()->with('error', 'No users found to send emails.');
+            }
+
+            $emailsSent = 0;
+            $emailsFailed = 0;
+
+            foreach ($users as $user) {
+                try {
+                    Mail::to($user->email)->send(
+                        new AnnouncementMail($announcement)
+                    );
+                    $emailsSent++;
+                } catch (\Exception $e) {
+                    $emailsFailed++;
+                    Log::error("Failed to send announcement email to {$user->email}: " . $e->getMessage());
+                }
+            }
+
+            $message = "Announcement sent to {$emailsSent} users.";
+            if ($emailsFailed > 0) {
+                $message .= " {$emailsFailed} emails failed.";
+            }
+
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            Log::error('Announcement send error: ' . $e->getMessage());
+            return back()->with('error', 'Failed to send announcement. Please try again.');
         }
-
-        return back()->with('success', 'Announcement sent!');
     }
 }
 
